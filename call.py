@@ -31,12 +31,40 @@ def main():
 
     # ----------------- SIDEBAR SECTION -----------------
     st.sidebar.title("Previously Generated Trees")
+
+    # Define custom CSS for the link buttons with hover effect
+    st.sidebar.markdown(
+        """
+        <style>
+        .treeButton {
+        display: block;
+        font-family: sans-serif;
+        padding: 0.5em 1em;
+        background-color: #088db6;
+        color: white;
+        text-decoration: none; /* Remove underline */
+        border-radius: 4px;
+        margin-bottom: 5px;
+        transition: background-color 0.3s ease;
+        }
+        .treeButton:hover {
+        background-color: #056b8a;
+        color: white;          /* Keep text white on hover */
+        text-decoration: none; /* Remove underline on hover */
+        }
+        </style>
+        """, unsafe_allow_html=True
+    )
+
     if generated_trees:
         for t in generated_trees:
-            # Each tree name is a clickable link
-            st.sidebar.markdown(f"- [{t['name']}]({t['link']})", unsafe_allow_html=True)
+            st.sidebar.markdown(
+                f'<a class="treeButton" href="{t["link"]}" target="_blank" style="color: white;">{t["name"]}</a>',
+                unsafe_allow_html=True
+            )
     else:
         st.sidebar.write("No previously generated trees found.")
+
 
     # ----------------- MAIN PAGE SECTION -----------------
     # Display your logo and title

@@ -10,12 +10,13 @@ import streamlit as st
 API_KEY = st.secrets["general"]["api_key"]
 
 class CombinedMedicalTreeGenerator:
-    def __init__(self, file_type: str, disease_context: list):
+    def __init__(self, file_type: str, disease_context: list,user_input: str):
         self.file_type = file_type
         self.disease_context = disease_context
         self.indication_iterations = 5
         self.technical_iterations = 1
         self.result_iterations = 5
+        self.user_input = user_input
 
         self.model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
@@ -193,6 +194,9 @@ class CombinedMedicalTreeGenerator:
 **goal:**
 You are a medical professional. Your task is to generate a structured, hierarchical INDICATION tree for a radiological exam. The tree should clearly document the clinical rationale by including patient details (such as age, sex, and history), the main symptoms prompting the exam, and disease-specific diagnostic questions. This output must be strictly tailored to the file type "{self.file_type}" and the following diseases: {', '.join(self.disease_context)}.
 
+**strictly follow** **User input:**
+{self.user_input} **this should be followed strictly**
+
 **return format:**
 - Produce exactly one top-level node:
   `INDICATION:` (TYPE_TITLE)
@@ -281,6 +285,8 @@ Focus on listing the major high-level categories and nodes with minimal sub-leve
 **goal:**
 Refine and fully complete the provided INDICATION section {expanded_prompt} by adding deeper sub-questions to nodes that are still underdeveloped or incomplete. Ensure that every clinically relevant question is addressed and no node remains partially expanded. Focus particularly on expanding disease-specific and symptom-related branches until every clinically relevant question is exhausted.
 
+
+
 **return format:**
 - Retain the single top-level "INDICATION:" node with all further details indented at 4 spaces per level.
 - Every node must continue to follow the format: "Node Text: (Nodetype)".
@@ -300,6 +306,8 @@ Refine and fully complete the provided INDICATION section {expanded_prompt} by a
                 user_prompt = f"""
 **goal:**
 Refine and expand the existing INDICATION section {expanded_prompt} by increasing the depth of the tree. Add deeper sub-questions and details for disease-specific and symptom-related branches, but do not finalize all nodes. This iteration aims to progressively elaborate the content without completing every branch fully.
+
+
 
 **return format:**
 - Keep the single top-level "INDICATION:" node with subsequent nodes indented at 4 spaces per level.
@@ -328,6 +336,9 @@ Refine and expand the existing INDICATION section {expanded_prompt} by increasin
             system_instruction = f"""
 **goal:**
 You are a medical professional. Your goal is to generate a structured, hierarchical TECHNICAL tree for a radiological exam. This tree should detail the technical parameters and protocols used during imaging—such as the use of contrast injections, imaging sequences (e.g., T1, T2, FLAIR, angiographic sequences), and other modality-specific settings. This output must be strictly tailored to the file type "{self.file_type}" and the following diseases: {', '.join(self.disease_context)}. The TECHNICAL tree will typically follow the INDICATION tree {{expanded_prompt}} for context, but it should not duplicate information from the INDICATION or RESULT trees.
+
+**strictly follow** **User input:**
+{self.user_input} this should be followed strictly
 
 **return format:**
 - Produce exactly one top-level node:
@@ -385,6 +396,8 @@ TECHNICAL: (Title)
 **goal:**
 Generate a single structured and deep TECHNICAL section for a radiological exam strictly based on the imaging protocols used. This output must be tailored to the file type "{self.file_type}" and the following diseases: {', '.join(self.disease_context)}. The tree should cover key technical aspects such as contrast injection usage, imaging sequences, and any additional parameters relevant to the modality.
 
+
+
 **return format:**
 - A single top-level "TECHNICAL:" node (with zero indentation) followed by all subordinate nodes indented at 4 spaces per level.
 - Each node must include its text and nodetype immediately after (e.g., "Injection Protocol: (Topic)").
@@ -416,7 +429,9 @@ Generate a single structured and deep TECHNICAL section for a radiological exam 
 Generate an initial structured RESULT section for a radiological exam based on final imaging observations.
 Tailor the output to "{self.file_type}" and diseases: {', '.join(self.disease_context)}.
 List major anatomical categories (e.g., pleura, parenchyma, mediastinum, bones, devices) with minimal detail.
+
 """
+
             elif iteration == self.result_iterations - 1:
                 user_prompt = f"""
 **goal:**
@@ -426,6 +441,9 @@ Refine and fully complete the provided RESULT section {result} by adding deeper 
 - Retain the single top-level "RESULT:" node with all further details indented at 4 spaces per level.
 - Every node must continue to follow the format: "Node Text: (Nodetype)".
 - Expand branches by including additional sub-nodes such as more detailed abnormality classifications, measurement nodes, logical nodes, or calculation nodes.
+
+
+
 """
             else:
                 user_prompt = f"""
@@ -443,6 +461,9 @@ You are a medical professional. Your goal is to generate a structured, hierarchi
 and a TECHNICAL tree:
 {technical_tree_text}
 both of which may be referenced for context but should not be duplicated here.
+
+**strictly follow** **User input:**
+{self.user_input} this should be followed strictly
 
 **return format:**
 - Produce exactly one top-level node:

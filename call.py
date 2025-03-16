@@ -50,6 +50,7 @@ def main():
     # Input fields for new tree generation
     file_type = st.text_input("Enter file type (e.g., 'Thyroid ultrasound')", "Thyroid ultrasound")
     diseases_input = st.text_area("Enter diseases separated by commas", "Nodule Control, Echo Std, Thyroiditis")
+    user_input = st.text_area("Enter addtional info if any", "")
     tree_name = st.text_input("Enter tree name", "")
 
     if st.button("Generate & Convert"):
@@ -63,7 +64,7 @@ def main():
         my_bar = st.progress(0, text="Starting Generation")
         my_text = st.empty()
         
-        generator = CombinedMedicalTreeGenerator(file_type, disease_context)
+        generator = CombinedMedicalTreeGenerator(file_type, disease_context,user_input)
         tree = generator.run(my_bar, my_text)  # <--- The method that returns your combined tree JSON
         st.success("Pipeline completed successfully.")
         

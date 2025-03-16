@@ -59,7 +59,7 @@ def main():
     if generated_trees:
         for t in generated_trees:
             st.sidebar.markdown(
-                f'<a class="treeButton" href="{t["link"]}" target="_blank" style="color: white;">{t["name"]}</a>',
+                f'<a class="treeButton" href="{t["link"]}" target="_blank" style="color: white; text-decoration: none;">{t["name"]}</a>',
                 unsafe_allow_html=True
             )
     else:

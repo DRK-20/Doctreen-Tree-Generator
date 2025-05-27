@@ -15,14 +15,13 @@ class CombinedMedicalTreeGenerator:
         self.file_type = file_type
         self.disease_context = disease_context
         self.user_input = user_input
-        # Fixed iteration counts: 5 for INDICATION and RESULT, 1 for TECHNICAL
         self.indication_iterations = 5
         self.technical_iterations = 2
         self.result_iterations = 5
 
         # self.model_eval = ChatGroq(
         #     model_name="llama-3.3-70b-versatile",
-        #     api_key="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",
+        #     api_key="API_KEY",
         #     temperature=0.7
         # )
         self.model = ChatGoogleGenerativeAI(
@@ -416,7 +415,7 @@ Please provide your evaluation in a clear, structured format with your recommend
 
     # ---------------- Tree Generation Methods ----------------
 
-    def generate_indication_tree(self) -> str:
+    def generate_indication_tree(self,stream_lit_bar) -> str:
         expanded_prompt = None
         evaluation_feedback = ""
         for iteration in range(self.indication_iterations):
@@ -602,11 +601,13 @@ Fully complete and polish the INDICATION section {expanded_prompt} by incorporat
             evaluation_feedback = self.evaluate_tree_indication(expanded_prompt)
             print(f"Evaluation feedback (iteration {iteration+1}):")
             print(evaluation_feedback)
+            self.current_step+=1
+            stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),text=f"INDICATION iteration : {iteration+1} completed")
         print(f"Final INDICATION tree text length: {len(expanded_prompt)}")
 
         return expanded_prompt
 
-    def generate_technical_tree(self, indication_tree_text: str) -> str:
+    def generate_technical_tree(self, indication_tree_text: str,stream_lit_bar) -> str:
         technical_tree = None
         evaluation_feedback = ""
         for iteration in range(self.technical_iterations):
@@ -761,10 +762,12 @@ Generate a single, structured TECHNICAL section for a radiological exam based on
             evaluation_feedback = self.evaluate_tree_technical(technical_tree)
             print(f"Evaluation feedback (iteration {iteration+1}):")
             print(evaluation_feedback)
+            self.current_step+=1
+            stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),text=f"TECHNIQUE iteration : {iteration+1} completed")
         print(f"Final TECHNICAL tree text length: {len(technical_tree)}")
         return technical_tree
 
-    def generate_result_tree(self, indication_tree_text: str, technical_tree_text: str) -> str:
+    def generate_result_tree(self, indication_tree_text: str, technical_tree_text: str,stream_lit_bar) -> str:
         result = None
         evaluation_feedback = ""
         for iteration in range(self.result_iterations):
@@ -927,6 +930,8 @@ Generate a single, structured TECHNICAL section for a radiological exam based on
             evaluation_feedback = self.evaluate_tree_result(result)
             print(f"Evaluation feedback (iteration {iteration+1}):")
             print(evaluation_feedback)
+            self.current_step+=1
+            stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),text=f"RESULT iteration : {iteration+1} completed")
         print(f"Final RESULT tree text length: {len(result)}")
         return result
 
@@ -1228,22 +1233,17 @@ Generate a single, structured TECHNICAL section for a radiological exam based on
 
     # ---------------- Run Pipeline ----------------
 
-    def run(self):
-        print("Generating INDICATION tree...")
-        indication_text = self.generate_indication_tree()
-        print("Generated INDICATION Tree Text:")
-        print(indication_text)
-
-        print("Generating TECHNICAL tree...")
-        technical_text = self.generate_technical_tree(indication_text)
-        print("Generated TECHNICAL Tree Text:")
-        print(technical_text)
-
-        print("Generating RESULT tree...")
-        result_text = self.generate_result_tree(indication_text, technical_text)
-        print("Generated RESULT Tree Text:")
-        print(result_text)
-
+    def run(self,stream_lit_bar,stream_lit_text):
+        self.current_step = 0
+        stream_lit_text.text("Generating INDICATION tree...")
+        stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),"Starting Indication tree generation")
+        indication_text = self.generate_indication_tree(stream_lit_bar=stream_lit_bar)
+        stream_lit_text.text("Successfully generated INDICATION tree. Generating TECHNICAL tree...")
+        stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),"Starting Technical tree generation")
+        technical_text = self.generate_technical_tree(indication_text,stream_lit_bar=stream_lit_bar)
+        stream_lit_text.text("Successfully generated TECHNIQUE tree. Generating RESULT tree...")
+        stream_lit_bar.progress(self.current_step/(self.indication_iterations+self.technical_iterations+self.result_iterations),"Starting Result tree generation")
+        result_text = self.generate_result_tree(indication_text, technical_text,stream_lit_bar=stream_lit_bar)
         indication_nodes = self.parse_indentation_tree(indication_text)
         technical_nodes = self.parse_indentation_tree(technical_text)
         result_nodes = self.parse_indentation_tree(result_text)
@@ -1255,16 +1255,13 @@ Generate a single, structured TECHNICAL section for a radiological exam based on
         print(f"length of technical tree :{len(technical_dedup)}")
         print(f"length of result tree :{len(result_dedup)}")
         print(f"sum: {len(indication_dedup)+len(technical_dedup)+len(result_dedup)}")
-
         combined_nodes = self.combine_trees(list(indication_dedup.values()),
                                             list(technical_dedup.values()),
                                             list(result_dedup.values()))
         print(f"Length of combined tree: {len(combined_nodes)}")
         transformed_nodes = self.transform_nodes(combined_nodes)
-
-        print(f"Length of combined tree: {len(transformed_nodes)}")
-        print("Pipeline completed successfully.")
-
+        stream_lit_text.text("Successfully generated and processed tree")
+        print(f"Returning the tree")
         return list(transformed_nodes.values())
                     
         # with open(self.combined_json_filename, "w") as f:

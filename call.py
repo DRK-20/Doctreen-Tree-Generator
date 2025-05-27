@@ -17,7 +17,7 @@ def main():
     client = pymongo.MongoClient(URI)
     db = client["doctreen"]
     collection = db["trees"]
-    query = {"ownerId": ObjectId("679fc806c5dab815f7995fb8")}
+    query = {"ownerId": ObjectId("67ebb763a17d66c7a64b11fa")}
     projection = {"treeName": 1, "lineTreeId": 1, "_id": 0}
     results = collection.find(query, projection)
 
@@ -26,7 +26,7 @@ def main():
     for record in results:
         tree_name = record['treeName']
         line_id = str(record['lineTreeId'])
-        tree_link = f'https://front.interns.doctreen.io/edit/{line_id}'
+        tree_link = f'https://integrate.doctreen.com/edit/{line_id}'
         generated_trees.append({"name": tree_name, "link": tree_link})
 
     # ----------------- SIDEBAR SECTION -----------------
@@ -99,7 +99,7 @@ def main():
         st.info("Uploading into Doctreen...")
         my_bar.empty()
 
-        owner_id = "679fc806c5dab815f7995fb8"
+        owner_id = "67ebb763a17d66c7a64b11fa"
         try:
             converter = CustomToDoctreenConverter(owner_id, tree_name)
             doctreen_nodes, _, link = converter.convert_custom_to_doctreen(tree)

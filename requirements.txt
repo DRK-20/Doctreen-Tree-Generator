@@ -6,3 +6,4 @@ regex
 graphviz
 langchain
 langchain-google-genai
+deep-translator
